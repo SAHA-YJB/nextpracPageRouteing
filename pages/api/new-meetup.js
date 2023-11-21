@@ -4,6 +4,7 @@
 import { MongoClient } from "mongodb";
 
 export default async function handler(req, res) {
+  //몽고디비에 데이터 저장하기
   if (req.method === "POST") {
     const data = req.body;
 

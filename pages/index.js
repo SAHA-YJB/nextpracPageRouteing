@@ -1,4 +1,5 @@
 import MeetupList from "@/components/meetups/MeetupList";
+import { MongoClient } from "mongodb";
 
 const DUMMY_MEETUPS = [
   {
@@ -56,10 +57,20 @@ export default function HomePage(props) {
 //블로그 포스트, 문서 등 변경 빈도가 낮은 콘텐츠에 적합
 //이 데이터에 최신 데이터는 없을 수 있다
 export async function getStaticProps() {
-  //fetch data from an API
+  //몽고디비에서 데이터가져오기
+  const client = await MongoClient.connect(process.env.MONGODB_URI);
+  const db = client.db();
+  const meetupsCollection = db.collection("meetups");
+  const meetups = await meetupsCollection.find().toArray();
+  client.close();
   return {
     props: {
-      meetups: DUMMY_MEETUPS,
+      meetups: meetups.map((meetup) => ({
+        title: meetup.title,
+        address: meetup.address,
+        image: meetup.image,
+        id: meetup._id.toString(),
+      })),
     },
     //점진적으로 정적 생성한다
     //revalidate는 빌드 후에도 페이지를 최신 상태로 유지하기 위해 재검증하는 빈도를 설정하는 역할
