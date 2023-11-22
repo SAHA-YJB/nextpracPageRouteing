@@ -1,47 +1,54 @@
 import MeetupDetail from "@/components/meetups/MeetupDetail";
+import { MongoClient, ObjectId } from "mongodb";
 
 export default function MeetupDetails(props) {
   return (
     <MeetupDetail
-      image="https://search.pstatic.net/common/?src=http%3A%2F%2Fblogfiles.naver.net%2FMjAyMzA4MTlfMTI4%2FMDAxNjkyNDMxODY0NDM2.0jBcFTPx99FFN9GC1MZ8PdFc2L9we3i8ponFSRi0z-4g.T54iqIDXTWmtLIayhNb_fCvAIuldGj431z2ORXNRdzwg.JPEG.senser111%2F1000005147.jpg&type=a340"
-      title="first"
-      address="123"
-      description="this is first"
+      image={props.meetupData.image}
+      title={props.meetupData.title}
+      address={props.meetupData.address}
+      description={props.meetupData.description}
     />
   );
 }
 
 export async function getStaticPaths() {
+  const client = await MongoClient.connect(process.env.MONGODB_URI);
+  const db = client.db();
+  const meetupsCollection = db.collection("meetups");
+  //아이디만 포함하고 다른 키 값은 안가져옴
+  const meetups = await meetupsCollection.find({}, { _id: 1 }).toArray();
+  client.close();
   return {
     fallback: false,
-    paths: [
-      {
-        params: {
-          meetupId: "m1",
-        },
-      },
-      {
-        params: {
-          meetupId: "m2",
-        },
-      },
-    ],
+    paths: meetups.map((meetup) => ({
+      params: { meetupId: meetup._id.toString() },
+    })),
   };
 }
 
 export async function getStaticProps(context) {
   //동적인 페이지니까 아이디 추출
   const meetupId = context.params.meetupId;
-  console.log(meetupId);
+
+  const client = await MongoClient.connect(process.env.MONGODB_URI);
+  const db = client.db();
+  const meetupsCollection = db.collection("meetups");
+  //아이디만 포함하고 다른 키 값은 안가져옴
+  const meetup = await meetupsCollection.findOne({
+    _id: new ObjectId(meetupId),
+  });
+  console.log(meetup);
+  client.close();
+
   return {
     props: {
       meetupData: {
-        image:
-          "https://search.pstatic.net/common/?src=http%3A%2F%2Fblogfiles.naver.net%2FMjAyMzA4MTlfMTI4%2FMDAxNjkyNDMxODY0NDM2.0jBcFTPx99FFN9GC1MZ8PdFc2L9we3i8ponFSRi0z-4g.T54iqIDXTWmtLIayhNb_fCvAIuldGj431z2ORXNRdzwg.JPEG.senser111%2F1000005147.jpg&type=a340",
-        id: meetupId,
-        title: "A First Meetup",
-        address: "Some address 5, 12345 Some City",
-        description: "This is a first meetup!",
+        id: meetup._id.toString(),
+        title: meetup.title,
+        address: meetup.address,
+        image: meetup.image,
+        description: meetup.description,
       },
     },
   };
